@@ -1,3 +1,4 @@
+from django.contrib.gis.db.backends.postgis.const import POSTGIS_TO_GDAL
 from django.shortcuts import render, redirect
 from pyexpat.errors import messages
 
@@ -37,5 +38,21 @@ def list_eventos(request):
     evento = Evento.objects.filter(usuario=user)
     dados = {'eventos': evento}
     return render(request, 'agenda.html', dados)
+@login_required(login_url='/login/')
+def evento(request):
+    return render(request, 'evento.html')
+@login_required(login_url='/login/')
+def submit_evento(request):
+    if request.method == 'POST':
+        titulo = request.POST.get('titulo')
+        data_evento = request.POST.get('data_evento')
+        descricao = request.POST.get('descricao')
+        usuario = request.user
+        Evento.objects.create(titulo=titulo,
+                              data_evento=data_evento,
+                              descricao=descricao,
+                              usuario=usuario)
+
+    return redirect('/')
 
 
