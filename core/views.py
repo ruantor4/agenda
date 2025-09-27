@@ -1,4 +1,5 @@
 from django.contrib.gis.db.backends.postgis.const import POSTGIS_TO_GDAL
+from django.http import Http404, JsonResponse
 from django.shortcuts import render, redirect
 from pyexpat.errors import messages
 
@@ -6,6 +7,7 @@ from core.models import Evento
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
+from datetime import datetime, timedelta
 
 
 # Create your views here.
@@ -39,7 +41,9 @@ def submit_login(request):
 @login_required(login_url='/login/')
 def list_eventos(request):
     user = request.user
-    evento = Evento.objects.filter(usuario=user)
+    data_atual = datetime.now() - timedelta(hours=1)
+    evento = Evento.objects.filter(usuario=user,
+                                   data_evento__gte=data_atual)
     dados = {'eventos': evento}
     return render(request, 'agenda.html', dados)
 
@@ -75,7 +79,18 @@ def submit_evento(request):
 @login_required(login_url='/login/')
 def delete_evento(request, id_evento):
     usuario = request.user
-    evento = Evento.objects.get(id=id_evento)
+    try:
+        evento = Evento.objects.get(id=id_evento)
+    except Exception:
+        raise Http404()
     if usuario == evento.usuario:
         evento.delete()
+    else:
+        raise Http404()
     return redirect('/')
+
+
+def json_list_eventos(request):
+    user = request.user
+    evento = Evento.objects.filter(usuario=user).values('id', 'titulo')
+    return JsonResponse(list(evento), safe=False)
